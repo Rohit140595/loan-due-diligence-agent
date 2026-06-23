@@ -1,0 +1,14 @@
+{
+    "APPLICANT-001" : {
+        "credit_report" : {
+            "credit_score": 750
+            , "late_payments": 2
+            , "outstanding_debt": 5000
+        },
+        "bank_statements" : {
+            "avg_monthly_revenue": 10000
+            , "revenue_volatility": "low"
+            , "months_of_history": 15 
+        }
+    }
+}
