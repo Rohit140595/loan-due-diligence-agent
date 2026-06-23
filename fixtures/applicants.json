@@ -1,5 +1,7 @@
 {
     "APPLICANT-001" : {
+        "company_name": "Acme Bakery LLC",
+        "industry": "bakery",
         "credit_report" : {
             "credit_score": 750
             , "late_payments": 2
@@ -8,7 +10,12 @@
         "bank_statements" : {
             "avg_monthly_revenue": 10000
             , "revenue_volatility": "low"
-            , "months_of_history": 15 
+            , "months_of_history": 15
+        },
+        "business_filings": {
+            "state_registration_status": "active",
+            "tax_filing_status": "current",
+            "years_filed_consecutively": 3
         }
     }
 }

@@ -5,11 +5,12 @@ import os
 import json
 
 from tools import (
-    get_bank_statements
+    get_applicant_profile
+    , get_bank_statements
     , get_credit_report
-    # , get_business_filings   # TODO: not implemented yet
-    # , get_industry_benchmarks  # TODO: not implemented yet
-    # , search_news             # TODO: not implemented yet
+    , get_business_filings
+    , get_industry_benchmarks
+    # , search_news             # TODO: open design question -- what powers this for real?
     # , run_risk_score          # TODO: not implemented yet
     )
 
@@ -30,6 +31,15 @@ with open("strategy.md") as f:
 #    it's allowed to call and what arguments each tool expects.
 TOOLS = [
     {
+        "name": "get_applicant_profile",
+        "description": "Fetch the applicant's basic profile (company name, industry) for the given applicant id.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"applicant_id": {"type": "string"}},
+            "required": ["applicant_id"],
+        },
+    },
+    {
         "name": "get_credit_report",
         "description": "Fetch the applicant's credit report (score, late payments, outstanding debt).",
         "input_schema": {
@@ -47,25 +57,25 @@ TOOLS = [
             "required": ["applicant_id"],
         },
     },
-    # TODO: not implemented yet -- re-enable once tools/*.py are written
-    # {
-    #     "name": "get_business_filings",
-    #     "description": "Fetch state registration / incorporation / tax filing status for the business.",
-    #     "input_schema": {
-    #         "type": "object",
-    #         "properties": {"company_name": {"type": "string"}},
-    #         "required": ["company_name"],
-    #     },
-    # },
-    # {
-    #     "name": "get_industry_benchmarks",
-    #     "description": "Fetch sector-level benchmarks (default rate, average revenue) for the applicant's industry.",
-    #     "input_schema": {
-    #         "type": "object",
-    #         "properties": {"industry": {"type": "string"}},
-    #         "required": ["industry"],
-    #     },
-    # },
+    {
+        "name": "get_business_filings",
+        "description": "Fetch state registration / incorporation / tax filing status for the business.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"applicant_id": {"type": "string"}},
+            "required": ["applicant_id"],
+        },
+    },
+    {
+        "name": "get_industry_benchmarks",
+        "description": "Fetch sector-level benchmarks (default rate, average revenue) for the applicant's industry.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"industry": {"type": "string"}},
+            "required": ["industry"],
+        },
+    },
+    # TODO: open design questions -- see search_news / run_risk_score below
     # {
     #     "name": "search_news",
     #     "description": "Search recent news/articles mentioning the company. Returns raw snippets for the agent to interpret.",
@@ -89,11 +99,12 @@ TOOLS = [
 # Maps each tool name Claude can request -> the actual Python function to run.
 # Keys here must match the "name" fields in TOOLS exactly.
 TOOL_FUNCTIONS = {
+    "get_applicant_profile": get_applicant_profile,
     "get_credit_report": get_credit_report,
     "get_bank_statements": get_bank_statements,
-    # "get_business_filings": get_business_filings,     # TODO: not implemented yet
-    # "get_industry_benchmarks": get_industry_benchmarks, # TODO: not implemented yet
-    # "search_news": search_news,                       # TODO: not implemented yet
+    "get_business_filings": get_business_filings,
+    "get_industry_benchmarks": get_industry_benchmarks,
+    # "search_news": search_news,                       # TODO: open design question
     # "run_risk_score": run_risk_score,                 # TODO: not implemented yet
 }
 
