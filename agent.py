@@ -11,7 +11,7 @@ from tools import (
     , get_business_filings
     , get_industry_benchmarks
     , search_news
-    # , run_risk_score          # TODO: not implemented yet
+    , run_risk_score
     )
 
 # Load ENV
@@ -84,16 +84,15 @@ TOOLS = [
             "required": ["applicant_id"],
         },
     },
-    # TODO: open design question -- see run_risk_score below
-    # {
-    #     "name": "run_risk_score",
-    #     "description": "Compute a composite risk score from whatever evidence has been gathered so far.",
-    #     "input_schema": {
-    #         "type": "object",
-    #         "properties": {"evidence": {"type": "object"}},
-    #         "required": ["evidence"],
-    #     },
-    # },
+    {
+        "name": "run_risk_score",
+        "description": "Computes a composite risk score (0-100, higher is healthier) by pulling the applicant's own credit, banking, filings, and industry data directly -- does not take evidence as input, since it always fetches ground-truth data itself.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"applicant_id": {"type": "string"}},
+            "required": ["applicant_id"],
+        },
+    },
 ]
 
 # Maps each tool name Claude can request -> the actual Python function to run.
@@ -105,7 +104,7 @@ TOOL_FUNCTIONS = {
     "get_business_filings": get_business_filings,
     "get_industry_benchmarks": get_industry_benchmarks,
     "search_news": search_news,
-    # "run_risk_score": run_risk_score,                 # TODO: not implemented yet
+    "run_risk_score": run_risk_score,
 }
 
 
