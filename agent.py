@@ -10,7 +10,7 @@ from tools import (
     , get_credit_report
     , get_business_filings
     , get_industry_benchmarks
-    # , search_news             # TODO: open design question -- what powers this for real?
+    , search_news
     # , run_risk_score          # TODO: not implemented yet
     )
 
@@ -75,16 +75,16 @@ TOOLS = [
             "required": ["industry"],
         },
     },
-    # TODO: open design questions -- see search_news / run_risk_score below
-    # {
-    #     "name": "search_news",
-    #     "description": "Search recent news/articles mentioning the company. Returns raw snippets for the agent to interpret.",
-    #     "input_schema": {
-    #         "type": "object",
-    #         "properties": {"company_name": {"type": "string"}},
-    #         "required": ["company_name"],
-    #     },
-    # },
+    {
+        "name": "search_news",
+        "description": "Search recent news/articles mentioning the company. Returns raw snippets for the agent to interpret -- does not pre-filter or score sentiment.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"applicant_id": {"type": "string"}},
+            "required": ["applicant_id"],
+        },
+    },
+    # TODO: open design question -- see run_risk_score below
     # {
     #     "name": "run_risk_score",
     #     "description": "Compute a composite risk score from whatever evidence has been gathered so far.",
@@ -104,7 +104,7 @@ TOOL_FUNCTIONS = {
     "get_bank_statements": get_bank_statements,
     "get_business_filings": get_business_filings,
     "get_industry_benchmarks": get_industry_benchmarks,
-    # "search_news": search_news,                       # TODO: open design question
+    "search_news": search_news,
     # "run_risk_score": run_risk_score,                 # TODO: not implemented yet
 }
 

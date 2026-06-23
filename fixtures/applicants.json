@@ -16,6 +16,16 @@
             "state_registration_status": "active",
             "tax_filing_status": "current",
             "years_filed_consecutively": 3
-        }
+        },
+        "news_articles": [
+            {
+                "headline": "Acme Bakery LLC celebrates 3 years serving the local community",
+                "snippet": "Local favorite Acme Bakery LLC marked its third anniversary with a community event, citing steady growth in foot traffic."
+            },
+            {
+                "headline": "Local bakery sector sees modest growth amid inflation pressures",
+                "snippet": "Industry roundup notes small bakeries, including Acme Bakery LLC, navigating rising ingredient costs with stable customer demand."
+            }
+        ]
     }
 }
