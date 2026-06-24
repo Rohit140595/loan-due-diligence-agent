@@ -130,6 +130,12 @@ def run_investigation(applicant_id):
         {"role": "user", "content": f"Investigate loan applicant: {applicant_id}"}
     ]
 
+    # Tracks every tool call made during this investigation -- used for
+    # Module 6 evals (behavioral correctness + hallucination/grounding
+    # checks), since the agent's own data needs to be compared against
+    # the final summary it writes.
+    tool_call_log = []
+
     # 4. Loop:
     #       - if Claude's response contains a tool_use block:
     #           - execute the corresponding Python function from tools/
@@ -146,9 +152,10 @@ def run_investigation(applicant_id):
         if response.stop_reason == "end_turn":
             # Claude is done -- no more tools requested. Collect its text
             # blocks into the final summary and return.
-            return "".join(
+            summary = "".join(
                 block.text for block in response.content if block.type == "text"
             )
+            return {"summary": summary, "tool_calls": tool_call_log}
 
         elif response.stop_reason == "tool_use":
             # Claude can request multiple tools in a single turn. We must
@@ -161,6 +168,10 @@ def run_investigation(applicant_id):
 
                 func = TOOL_FUNCTIONS[block.name]
                 result = func(**block.input)
+
+                tool_call_log.append(
+                    {"tool": block.name, "input": block.input, "output": result}
+                )
 
                 tool_results.append(
                     {
@@ -181,5 +192,8 @@ def run_investigation(applicant_id):
 # so the mechanics from Module 2 stay obvious.
 
 if __name__ == "__main__":
-    summary = run_investigation("APPLICANT-001")
-    print(summary)
+    result = run_investigation("APPLICANT-001")
+    print(result["summary"])
+    print("\n--- Tool calls made ---")
+    for call in result["tool_calls"]:
+        print(f"{call['tool']}({call['input']}) -> {call['output']}")
