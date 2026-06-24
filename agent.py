@@ -119,6 +119,7 @@ def call_claude(messages):
         system=STRATEGY,
         tools=TOOLS,
         messages=messages,
+        temperature=0 
     )
 
 

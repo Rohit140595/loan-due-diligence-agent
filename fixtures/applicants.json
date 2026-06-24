@@ -27,5 +27,30 @@
                 "snippet": "Industry roundup notes small bakeries, including Acme Bakery LLC, navigating rising ingredient costs with stable customer demand."
             }
         ]
+    },
+    "APPLICANT-002" : {
+        "company_name": "Westside Auto Repair LLC",
+        "industry": "auto_repair",
+        "credit_report" : {
+            "credit_score": 610
+            , "late_payments": 5
+            , "outstanding_debt": 42000
+        },
+        "bank_statements" : {
+            "avg_monthly_revenue": 9000
+            , "revenue_volatility": "high"
+            , "months_of_history": 8
+        },
+        "business_filings": {
+            "state_registration_status": "active",
+            "tax_filing_status": "delinquent",
+            "years_filed_consecutively": 1
+        },
+        "news_articles": [
+            {
+                "headline": "Westside Auto Repair named in customer complaint lawsuit",
+                "snippet": "A former customer has filed a small claims suit against Westside Auto Repair LLC alleging unauthorized charges on a vehicle repair invoice."
+            }
+        ]
     }
 }
