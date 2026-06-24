@@ -1,0 +1,10 @@
+{
+    "bakery": {
+        "sector_default_rate": 0.08,
+        "sector_avg_revenue": 12000
+    },
+    "retail": {
+        "sector_default_rate": 0.06,
+        "sector_avg_revenue": 18000
+    }
+}
