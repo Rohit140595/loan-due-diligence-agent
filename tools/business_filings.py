@@ -1,23 +1,33 @@
-# Filing status for a small business -- state registration / tax filing
-# status, NOT SEC filings (SEC applies to public companies, not relevant
-# to small business loan applicants).
+"""
+Tool: get_business_filings
 
-import json
-from pathlib import Path
+Fetches a small business's state registration and tax filing status --
+NOT SEC filings (SEC applies to public companies, not relevant to small
+business loan applicants).
 
-FIXTURES_PATH = Path(__file__).parent.parent / "fixtures" / "applicants.json"
+strategy.md requires this as a mandatory check before any APPROVE
+recommendation, regardless of how clean credit/revenue look: compliance
+issues (e.g. delinquent taxes) are invisible in credit/bank data and can
+disqualify an otherwise-clean applicant.
+"""
+
+from .api_client import api_get
 
 
 def get_business_filings(applicant_id: str) -> dict:
-    with open(FIXTURES_PATH) as f:
-        applicants = json.load(f)
+    """
+    Return {"state_registration_status": str, "tax_filing_status": str,
+    "years_filed_consecutively": int} for the given applicant's
+    business.
 
-    applicant = applicants.get(applicant_id)
-    if applicant is None:
-        return {"error": f"No applicant found with id {applicant_id}"}
-
-    return applicant.get("business_filings", {
-        "state_registration_status": None,
-        "tax_filing_status": None,
-        "years_filed_consecutively": None,
-    })
+    If no filing records are on file, all three fields come back as
+    None rather than the function raising.
+    """
+    data = api_get(f"/applicants/{applicant_id}/business-filings")
+    if data is None:
+        return {
+            "state_registration_status": None,
+            "tax_filing_status": None,
+            "years_filed_consecutively": None,
+        }
+    return data

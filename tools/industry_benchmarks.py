@@ -1,17 +1,25 @@
-# Sector-level reference data -- not tied to any individual applicant,
-# so this reads from its own fixture file keyed by industry, not by
-# applicant_id.
+"""
+Tool: get_industry_benchmarks
 
-import json
-from pathlib import Path
+Fetches sector-level reference data (default rate, average revenue) for
+one industry. Unlike the other tools, this is NOT tied to any individual
+applicant -- "the bakery sector's average default rate" is the same
+number regardless of which applicant you're investigating.
 
-FIXTURES_PATH = Path(__file__).parent.parent / "fixtures" / "industry_benchmarks.json"
+Requires the industry value, which is only available from
+get_applicant_profile -- no other tool exposes it.
+"""
+
+from .api_client import api_get
 
 
 def get_industry_benchmarks(industry: str) -> dict:
-    with open(FIXTURES_PATH) as f:
-        benchmarks = json.load(f)
-
-    return benchmarks.get(industry, {
-        "error": f"No benchmark data found for industry '{industry}'"
-    })
+    """
+    Return {"sector_default_rate": float, "sector_avg_revenue": float}
+    for the given industry, or {"error": str} if the industry isn't
+    recognized.
+    """
+    data = api_get(f"/industry-benchmarks/{industry}")
+    if data is None:
+        return {"error": f"No benchmark data found for industry '{industry}'"}
+    return data

@@ -1,26 +1,31 @@
-# TODO (Module 3/4): implement get_credit_report(applicant_id) -> dict
-#
-# Should return simulated but realistic fields, e.g.:
-#   { "credit_score": int, "late_payments": int, "outstanding_debt": float }
-#
-# Tool description (for the Claude API tools list) belongs in agent.py,
-# not here — this file is just the function Claude's request triggers.
+"""
+Tool: get_credit_report
 
-import json
-from pathlib import Path
+Fetches an applicant's credit history. Called first in every
+investigation, alongside get_bank_statements, since these two are the
+baseline signals strategy.md uses to decide whether to stop early or
+keep investigating.
+"""
 
-FIXTURES_PATH = Path(__file__).parent.parent / "fixtures" / "applicants.json"
+from .api_client import api_get
+
 
 def get_credit_report(applicant_id: str) -> dict:
-    with open(FIXTURES_PATH) as f:
-        applicants = json.load(f)
+    """
+    Return {"credit_score": int, "late_payments": int,
+    "outstanding_debt": float} for the given applicant.
 
-    applicant = applicants.get(applicant_id)
-    if applicant is None:
-        return {"error": f"No applicant found with id {applicant_id}"}
-
-    return applicant.get("credit_report", {
-        "credit_score": None,
-        "late_payments": None,
-        "outstanding_debt": None,
-    })
+    If the applicant has no credit history on file (e.g. a brand-new
+    business with nothing to report), all three fields come back as
+    None rather than the function raising or omitting the keys -- the
+    agent needs to see "we checked, there's nothing here" as a distinct
+    case from "this data point doesn't exist for any applicant."
+    """
+    data = api_get(f"/applicants/{applicant_id}/credit-report")
+    if data is None:
+        return {
+            "credit_score": None,
+            "late_payments": None,
+            "outstanding_debt": None,
+        }
+    return data

@@ -50,6 +50,16 @@ __SUMMARY__
 
 
 def judge_grounding(tool_calls: list, summary: str) -> dict:
+    """
+    Ask Claude to fact-check `summary` against the real tool evidence in
+    `tool_calls` (the same list run_investigation() returns).
+
+    Returns {"grounded": bool, "unsupported_claims": [str, ...]} --
+    `grounded` is False if the judge found any claim in the summary that
+    isn't actually supported by the evidence (a fabricated number, wrong
+    arithmetic, etc.), in which case `unsupported_claims` lists what it
+    flagged.
+    """
     evidence = json.dumps(
         [{"tool": c["tool"], "output": c["output"]} for c in tool_calls],
         indent=2,

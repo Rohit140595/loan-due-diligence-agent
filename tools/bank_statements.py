@@ -1,23 +1,29 @@
-# TODO (Module 3/4): implement get_bank_statements(applicant_id) -> dict
-#
-# Should return simulated fields like:
-#   { "avg_monthly_revenue": float, "revenue_volatility": str, "months_of_history": int }
+"""
+Tool: get_bank_statements
 
-import json
-from pathlib import Path
+Fetches summarized bank statement data for an applicant. Called first
+in every investigation, alongside get_credit_report, as the baseline
+signal strategy.md uses to decide whether to stop early or keep
+investigating.
+"""
 
-FIXTURES_PATH = Path(__file__).parent.parent / "fixtures" / "applicants.json"
+from .api_client import api_get
+
 
 def get_bank_statements(applicant_id: str) -> dict:
-    with open(FIXTURES_PATH) as f:
-        applicants = json.load(f)
+    """
+    Return {"avg_monthly_revenue": float, "revenue_volatility": str
+    ("low"/"moderate"/"high"), "months_of_history": int} for the given
+    applicant.
 
-    applicant = applicants.get(applicant_id)
-    if applicant is None:
-        return {"error": f"No applicant found with id {applicant_id}"}
-
-    return applicant.get("bank_statements", {
-        "avg_monthly_revenue": None,
-        "revenue_volatility": None,
-        "months_of_history": None,
-    })
+    If no bank statements are on file, all three fields come back as
+    None rather than the function raising.
+    """
+    data = api_get(f"/applicants/{applicant_id}/bank-statements")
+    if data is None:
+        return {
+            "avg_monthly_revenue": None,
+            "revenue_volatility": None,
+            "months_of_history": None,
+        }
+    return data

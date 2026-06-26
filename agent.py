@@ -1,4 +1,28 @@
-# TODO (Module 4): build the agent loop here.
+"""
+The agent loop: orchestrates a tool-use conversation with Claude to
+investigate a loan applicant and produce a structured recommendation.
+
+Built directly on the raw Anthropic SDK (no LangChain/agent framework)
+so the request/response mechanics of tool use stay visible. The overall
+flow is:
+
+  1. Send the applicant ID to Claude, along with a system prompt
+     (strategy.md) describing how to investigate and the list of tools
+     it's allowed to call (TOOLS below).
+  2. Claude responds either with plain text (it's done) or a request to
+     call one or more tools.
+  3. If tools were requested, this script actually executes the
+     corresponding Python function (TOOL_FUNCTIONS), and sends the real
+     result back to Claude as a new message.
+  4. Repeat until Claude responds with plain text -- the final summary,
+     ending in a machine-parseable "FINAL_RECOMMENDATION: ..." line.
+
+Claude only ever *requests* tool calls; this script is what actually
+executes them. That separation is the security/trust boundary for the
+whole system -- Claude cannot do anything beyond what TOOL_FUNCTIONS
+exposes.
+"""
+
 import anthropic
 from dotenv import load_dotenv
 import os
@@ -124,6 +148,24 @@ def call_claude(messages):
 
 
 def run_investigation(applicant_id):
+    """
+    Run a full investigation for one applicant and return its results.
+
+    Drives the tool-use loop until Claude produces a final text summary
+    (no more tool calls requested), then returns:
+
+      {
+          "summary": str,        # the full written report, ending in a
+                                  # "FINAL_RECOMMENDATION: ..." line
+          "tool_calls": [        # every tool call made, in order --
+              {"tool": str, "input": dict, "output": dict}, ...
+          ],
+      }
+
+    `tool_calls` exists purely for observability/evaluation -- it lets
+    the eval suite check *how* the agent investigated (which tools, how
+    many, in what order), not just what it concluded.
+    """
     # 3. Send initial message (applicant_id) to Claude with system + tools.
     # `messages` holds the entire conversation. The API is stateless, so we
     # resend this whole list (with everything appended so far) on every call.

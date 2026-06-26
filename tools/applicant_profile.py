@@ -1,17 +1,21 @@
-import json
-from pathlib import Path
+"""
+Tool: get_applicant_profile
 
-FIXTURES_PATH = Path(__file__).parent.parent / "fixtures" / "applicants.json"
+Fetches an applicant's basic identifying info (company name, industry).
+Often the first tool called in an investigation, since the industry
+value is required by get_industry_benchmarks and no other tool exposes
+it.
+"""
+
+from .api_client import api_get
 
 
 def get_applicant_profile(applicant_id: str) -> dict:
-    with open(FIXTURES_PATH) as f:
-        applicants = json.load(f)
-
-    applicant = applicants.get(applicant_id)
-    if applicant is None:
+    """
+    Return {"company_name": str, "industry": str} for the given
+    applicant, or {"error": str} if no applicant with that ID exists.
+    """
+    data = api_get(f"/applicants/{applicant_id}/profile")
+    if data is None:
         return {"error": f"No applicant found with id {applicant_id}"}
-
-    return {"company_name" : applicant.get("company_name", None)
-            , "industry":  applicant.get("industry", None)
-            }
+    return data

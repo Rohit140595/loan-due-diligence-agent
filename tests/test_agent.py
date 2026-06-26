@@ -1,10 +1,28 @@
-# TODO (Module 6): eval cases for agent behavior.
-#
-# At minimum, cover:
-#   - Applicant A (clean): assert agent stops early (few tool calls)
-#   - Applicant B (mixed/risky): assert agent investigates further
-#   - Hallucination check: assert agent's summary only cites facts that
-#     actually appear in tool results (no invented numbers/claims)
+"""
+Eval suite for the loan due diligence agent (run with `pytest
+tests/test_agent.py -v`). Requires the API server running
+(`uvicorn api:app --reload`) and both local databases built (see
+README "Running it").
+
+These tests don't compare against a single ground-truth label the way a
+traditional ML eval would (there's no "correct probability" for an
+agent's investigation) -- instead they're split into three categories
+that don't all need the same kind of evidence:
+
+  1. Behavioral correctness (no labels needed): did the agent follow its
+     own adaptive-depth strategy? Clean applicants should trigger a
+     short investigation; risky ones should trigger a thorough one.
+  2. Hallucination / grounding (no labels needed): is everything the
+     agent's summary claims actually supported by the real tool data it
+     gathered? Checked via a second, independent Claude call
+     (llm_judge.judge_grounding) rather than naive text matching, since
+     a regex-based first attempt had real false positives on derived
+     math.
+  3. Decision quality (needs human-labeled ground truth): does the
+     agent's final recommendation match what an experienced loan
+     officer would conclude, given the same evidence? Labels live in
+     tests/decision_labels.json.
+"""
 
 import json
 from pathlib import Path
@@ -20,10 +38,17 @@ with open(LABELS_PATH) as f:
 
 
 def test_clean_applicant_stops_with_minimal_investigation():
-    # APPLICANT-001 is a clean profile (good credit, active filings, low
-    # revenue volatility, no red flags) -- per strategy.md, the agent
-    # should stop after minimal investigation rather than pulling every
-    # tool. 3 calls covers profile + credit + one corroborating check.
+    """
+    Category 1 (behavioral correctness). APPLICANT-001 is a clean
+    profile (good credit, active filings, low revenue volatility, no red
+    flags) -- per strategy.md, the agent should stop after minimal
+    investigation rather than pulling every available tool.
+
+    Threshold is "<=4" rather than an exact count: LLM agents have some
+    run-to-run variance even at temperature=0, so this allows minor
+    fluctuation while still catching a real regression (e.g. the agent
+    calling all 7 tools regardless of how clean the signals are).
+    """
     result = run_investigation("APPLICANT-001")
 
     assert len(result["tool_calls"]) <= 4, (
@@ -31,14 +56,16 @@ def test_clean_applicant_stops_with_minimal_investigation():
         f"{len(result['tool_calls'])}: "
         f"{[call['tool'] for call in result['tool_calls']]}"
     )
-    
+
 
 def test_risky_applicant_investigates_thoroughly():
-    # APPLICANT-002 is a mixed/risky profile (weak credit, delinquent tax
-    # filing, high revenue volatility, a customer-complaint lawsuit) --
-    # per strategy.md, mixed or concerning signals should prompt the agent
-    # to keep investigating rather than stopping early. 5 calls means it
-    # went past the early "looks fine" checks into deeper verification.
+    """
+    Category 1 (behavioral correctness), the mirror case of the test
+    above. APPLICANT-002 is a mixed/risky profile (weak credit,
+    delinquent tax filing, high revenue volatility, a customer-complaint
+    lawsuit) -- per strategy.md, mixed or concerning signals should
+    prompt the agent to keep investigating rather than stopping early.
+    """
     result = run_investigation("APPLICANT-002")
 
     assert len(result["tool_calls"]) >= 5, (
@@ -109,6 +136,17 @@ _KNOWN_LIMITATIONS = {
     ],
 )
 def test_decision_matches_or_is_more_conservative_than_label(applicant_id):
+    """
+    Category 3 (decision quality). Runs once per labeled applicant in
+    tests/decision_labels.json (5-7 cases spanning clean, risky, and
+    genuinely ambiguous profiles). Fails only on a "false APPROVE" --
+    the agent recommending approval for an applicant a human loan
+    officer would have escalated or declined. Recommending more
+    cautiously than the label (e.g. label says APPROVE, agent says
+    ESCALATE) is treated as an acceptable efficiency tradeoff, not a
+    failure -- see the asymmetric-risk reasoning in the comment above
+    _KNOWN_LIMITATIONS.
+    """
     expected = DECISION_LABELS[applicant_id]["expected_recommendation"]
     result = run_investigation(applicant_id)
     actual = extract_recommendation(result["summary"])
