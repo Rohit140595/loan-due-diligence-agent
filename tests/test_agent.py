@@ -7,6 +7,13 @@
 #     actually appear in tool results (no invented numbers/claims)
 
 from agent import run_investigation
+from llm_judge import judge_grounding
+
+# Note: an earlier regex-based grounding check (eval_utils.py) is kept in
+# the repo for reference -- it had real false positives on derived math
+# ("42000/9000 = 4.7x") and prompt-stated facts, since regex can't
+# understand arithmetic or context. Replaced with LLM-as-judge below,
+# which can.
 
 
 def test_clean_applicant_stops_with_minimal_investigation():
@@ -36,3 +43,26 @@ def test_risky_applicant_investigates_thoroughly():
         f"{len(result['tool_calls'])}: "
         f"{[call['tool'] for call in result['tool_calls']]}"
     )
+
+
+def _assert_summary_is_grounded(applicant_id):
+    """
+    Every factual claim in the summary should be supported by the tool
+    evidence, per an independent LLM-as-judge call (handles derived math
+    and context correctly, unlike a regex-only check).
+    """
+    result = run_investigation(applicant_id)
+
+    verdict = judge_grounding(result["tool_calls"], result["summary"])
+
+    assert verdict["grounded"], (
+        f"judge flagged unsupported claims: {verdict['unsupported_claims']}"
+    )
+
+
+def test_clean_applicant_summary_is_grounded():
+    _assert_summary_is_grounded("APPLICANT-001")
+
+
+def test_risky_applicant_summary_is_grounded():
+    _assert_summary_is_grounded("APPLICANT-002")
