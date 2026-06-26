@@ -40,6 +40,8 @@ tools/            — one file per tool:
                         calls the other tool functions directly (no I/O
                         of its own)
 agent.py          — the agent loop (raw Anthropic SDK, no framework)
+ui.py             — Streamlit UI: pick an applicant, run the agent,
+                      review the report + full tool-call audit trail
 tests/            — eval suite (behavioral correctness, hallucination/
                       grounding via LLM-as-judge, decision quality
                       against human-labeled fixtures)
@@ -78,13 +80,19 @@ python scripts/migrate_news_to_chroma.py
 # for the 5 SQLite-backed tools; search_news queries Chroma directly)
 uvicorn api:app --reload
 
-# Run the agent (talks to the API above + Chroma + Anthropic API)
+# Run the agent from the command line...
 python agent.py
+
+# ...or launch the UI instead (same prerequisites: API server + both DBs)
+streamlit run ui.py
 ```
 
-Runs an investigation against the sample applicant in
-`fixtures/applicants.json` and prints the structured report. The eval
-suite (`pytest tests/test_agent.py`) also requires the API server running.
+The CLI run investigates the sample applicant in
+`fixtures/applicants.json` and prints the structured report. The UI lets
+you pick any applicant from a dropdown, run the investigation, and
+review the report alongside a full audit trail of every tool call the
+agent made. The eval suite (`pytest tests/test_agent.py`) also requires
+the API server running.
 
 ## Status
 
@@ -96,6 +104,5 @@ pattern, rather than one technology used everywhere. The agent adapts
 its investigation depth based on findings and defers the final
 approve/decline decision to a human analyst. Full eval suite covers
 behavioral correctness, hallucination/grounding, and decision quality
-against human-labeled fixtures.
-
-Next: UI layer to display applicant info + agent summary.
+against human-labeled fixtures. A Streamlit UI (`ui.py`) provides a
+human-facing view of the same investigation flow.
