@@ -189,6 +189,27 @@ def run_investigation(applicant_id):
             raise RuntimeError(f"Unexpected stop_reason: {response.stop_reason}")
 
 
+_VALID_RECOMMENDATIONS = {"APPROVE", "ESCALATE", "DECLINE"}
+
+
+def extract_recommendation(summary: str) -> str:
+    """
+    Parse the structured "FINAL_RECOMMENDATION: ..." line that strategy.md
+    requires as the last line of every summary. Returns "UNKNOWN" if the
+    line is missing or malformed, rather than raising -- a malformed
+    recommendation line is itself a real failure mode worth catching in
+    evals, not a crash.
+    """
+    for line in reversed(summary.strip().splitlines()):
+        line = line.strip()
+        if line.startswith("FINAL_RECOMMENDATION:"):
+            value = line.split(":", 1)[1].strip()
+            if value in _VALID_RECOMMENDATIONS:
+                return value
+            return "UNKNOWN"
+    return "UNKNOWN"
+
+
 # Keep this loop visible and simple at first -- no framework (LangChain/etc)
 # so the mechanics from Module 2 stay obvious.
 
