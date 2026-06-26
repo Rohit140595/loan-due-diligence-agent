@@ -1,17 +1,10 @@
-# Sector-level reference data -- not tied to any individual applicant,
-# so this reads from its own fixture file keyed by industry, not by
-# applicant_id.
+# Sector-level reference data -- not tied to any individual applicant.
 
-import json
-from pathlib import Path
-
-FIXTURES_PATH = Path(__file__).parent.parent / "fixtures" / "industry_benchmarks.json"
+from .api_client import api_get
 
 
 def get_industry_benchmarks(industry: str) -> dict:
-    with open(FIXTURES_PATH) as f:
-        benchmarks = json.load(f)
-
-    return benchmarks.get(industry, {
-        "error": f"No benchmark data found for industry '{industry}'"
-    })
+    data = api_get(f"/industry-benchmarks/{industry}")
+    if data is None:
+        return {"error": f"No benchmark data found for industry '{industry}'"}
+    return data

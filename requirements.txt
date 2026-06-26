@@ -1,2 +1,6 @@
 anthropic
 python-dotenv
+fastapi
+uvicorn
+requests
+pytest
