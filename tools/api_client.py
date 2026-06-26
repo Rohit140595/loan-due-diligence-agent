@@ -1,7 +1,12 @@
-# Shared HTTP client for the 5 tools that now call api.py instead of
-# reading fixtures/applicants.json directly. Centralizing this avoids
-# repeating the same requests.get/error-handling logic in every tool
-# file.
+"""
+Shared HTTP client used by the 5 tools that call api.py (the FastAPI
+service in db/loan_data.db's place) instead of reading
+fixtures/applicants.json directly. Centralizing the request/error
+handling here avoids repeating it in every tool file.
+
+Requires the API server to be running (`uvicorn api:app --reload`)
+before any of those tools are called.
+"""
 
 import os
 

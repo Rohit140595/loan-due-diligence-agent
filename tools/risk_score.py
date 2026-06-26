@@ -1,8 +1,16 @@
-# TODO (Module 3/4): implement run_risk_score(evidence: dict) -> dict
-#
-# Combines whatever evidence the agent has gathered so far into a
-# composite risk score. This tool should be purely computational —
-# it does NOT decide investigation strategy (that lives in strategy.md).
+"""
+Tool: run_risk_score
+
+Computes a composite risk score (0-100, higher is healthier) for an
+applicant, combining credit, banking, filings, and industry data. This
+tool is purely computational -- it does NOT decide investigation
+strategy (that lives in strategy.md), and it does NOT take evidence as
+an input parameter. Instead it calls the other tool functions directly
+to fetch ground-truth data itself, rather than trusting Claude to pass
+along numbers it saw earlier in the conversation -- an LLM "retyping" a
+number from its own context is a real source of transcription errors,
+so this tool re-fetches from the source instead.
+"""
 
 from .applicant_profile import get_applicant_profile
 from .bank_statements import get_bank_statements

@@ -1,10 +1,15 @@
-# One-time migration: load fixtures/applicants.json and
-# fixtures/industry_benchmarks.json into a SQLite database, replacing
-# direct JSON file reads with real key-based DB lookups for the 6
-# structured tools.
-#
-# Re-runnable: drops and recreates tables each time, so it's safe to run
-# after editing the JSON fixtures during development.
+"""
+Migration script: load fixtures/applicants.json and
+fixtures/industry_benchmarks.json into a SQLite database
+(db/loan_data.db), replacing direct JSON file reads with real key-based
+DB lookups for 5 of the agent's tools (everything except search_news,
+which uses a separate vector DB -- see migrate_news_to_chroma.py).
+
+Run with: `python scripts/migrate_to_sqlite.py`
+
+Re-runnable: drops and recreates every table each time, so it's safe to
+run again after editing the JSON fixtures during development.
+"""
 
 import json
 import sqlite3
@@ -18,6 +23,10 @@ BENCHMARKS_JSON = ROOT / "fixtures" / "industry_benchmarks.json"
 
 
 def migrate():
+    """
+    Rebuild db/loan_data.db from scratch using the current contents of
+    fixtures/applicants.json and fixtures/industry_benchmarks.json.
+    """
     with open(APPLICANTS_JSON) as f:
         applicants = json.load(f)
     with open(BENCHMARKS_JSON) as f:
