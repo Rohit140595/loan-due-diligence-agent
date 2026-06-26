@@ -52,5 +52,110 @@
                 "snippet": "A former customer has filed a small claims suit against Westside Auto Repair LLC alleging unauthorized charges on a vehicle repair invoice."
             }
         ]
+    },
+    "APPLICANT-003": {
+        "company_name": "Riverside Landscaping LLC",
+        "industry": "landscaping",
+        "credit_report": {
+            "credit_score": 740,
+            "late_payments": 1,
+            "outstanding_debt": 8000
+        },
+        "bank_statements": {
+            "avg_monthly_revenue": 7000,
+            "revenue_volatility": "high",
+            "months_of_history": 14
+        },
+        "business_filings": {
+            "state_registration_status": "active",
+            "tax_filing_status": "current",
+            "years_filed_consecutively": 4
+        },
+        "news_articles": []
+    },
+    "APPLICANT-004": {
+        "company_name": "Sunrise Daycare Center LLC",
+        "industry": "childcare",
+        "credit_report": {
+            "credit_score": 720,
+            "late_payments": 0,
+            "outstanding_debt": 6000
+        },
+        "bank_statements": {
+            "avg_monthly_revenue": 15000,
+            "revenue_volatility": "low",
+            "months_of_history": 20
+        },
+        "business_filings": {
+            "state_registration_status": "active",
+            "tax_filing_status": "delinquent",
+            "years_filed_consecutively": 2
+        },
+        "news_articles": []
+    },
+    "APPLICANT-005": {
+        "company_name": "Maple Street Books LLC",
+        "industry": "retail",
+        "credit_report": {
+            "credit_score": 700,
+            "late_payments": 0,
+            "outstanding_debt": 3000
+        },
+        "bank_statements": {
+            "avg_monthly_revenue": 16000,
+            "revenue_volatility": "low",
+            "months_of_history": 24
+        },
+        "business_filings": {
+            "state_registration_status": "active",
+            "tax_filing_status": "current",
+            "years_filed_consecutively": 5
+        },
+        "news_articles": [
+            {
+                "headline": "Maple Street Books marks 5 years downtown with community reading series",
+                "snippet": "The independent bookstore has become a neighborhood fixture, hosting weekly events that have grown its loyal customer base."
+            }
+        ]
+    },
+    "APPLICANT-006": {
+        "company_name": "Golden Gate Fitness Studio LLC",
+        "industry": "fitness",
+        "credit_report": {
+            "credit_score": 780,
+            "late_payments": 0,
+            "outstanding_debt": 4000
+        },
+        "bank_statements": {
+            "avg_monthly_revenue": 22000,
+            "revenue_volatility": "low",
+            "months_of_history": 36
+        },
+        "business_filings": {
+            "state_registration_status": "active",
+            "tax_filing_status": "current",
+            "years_filed_consecutively": 5
+        },
+        "news_articles": [
+            {
+                "headline": "Golden Gate Fitness Studio temporarily closed after health code violation",
+                "snippet": "Local health inspectors ordered a temporary closure pending corrective action; the studio says it expects to reopen within two weeks."
+            }
+        ]
+    },
+    "APPLICANT-007": {
+        "company_name": "Pinnacle Consulting Group LLC",
+        "industry": "professional_services",
+        "bank_statements": {
+            "avg_monthly_revenue": 5000,
+            "revenue_volatility": "low",
+            "months_of_history": 2
+        },
+        "business_filings": {
+            "state_registration_status": "active",
+            "tax_filing_status": "current",
+            "years_filed_consecutively": 1
+        },
+        "news_articles": []
     }
 }
