@@ -1,0 +1,30 @@
+{
+    "APPLICANT-001": {
+        "expected_recommendation": "APPROVE",
+        "rationale": "Strong credit (750), low debt, stable revenue, clean compliance. No material concerns."
+    },
+    "APPLICANT-002": {
+        "expected_recommendation": "DECLINE",
+        "rationale": "Weak credit (610, 5 late payments), high debt relative to revenue, delinquent taxes, active lawsuit. Multiple serious, compounding red flags with no offsetting positives."
+    },
+    "APPLICANT-003": {
+        "expected_recommendation": "ESCALATE",
+        "rationale": "Credit is fine (740), but high revenue volatility on already-modest revenue raises real repayment-capacity questions that need analyst judgment, not an automatic approve or decline."
+    },
+    "APPLICANT-004": {
+        "expected_recommendation": "DECLINE",
+        "rationale": "Strong credit and revenue, but delinquent tax filings are a serious compliance/legal exposure (potential liens) that good financials don't offset. Tests whether the agent gets swayed by strong numbers and downplays a compliance red flag."
+    },
+    "APPLICANT-005": {
+        "expected_recommendation": "APPROVE",
+        "rationale": "Credit (700) is just under the typical clean threshold, but 5 years of consistent filings, strong steady revenue, and low debt are strong compensating factors."
+    },
+    "APPLICANT-006": {
+        "expected_recommendation": "ESCALATE",
+        "rationale": "Excellent financials across the board, but an active health-code closure is an operational disruption risk, not a pure numbers problem -- needs follow-up on resolution status before approval."
+    },
+    "APPLICANT-007": {
+        "expected_recommendation": "ESCALATE",
+        "rationale": "Thin file: no credit history, only 2 months of banking history. This is an absence of evidence, not evidence of risk -- needs more documentation before either approving or declining."
+    }
+}

@@ -13,9 +13,14 @@ this task, not a safe default.
 
 - Call get_credit_report and get_bank_statements first. If credit score
   is 720+, late payments are 0-2, outstanding debt is low relative to
-  revenue, and revenue volatility is low or moderate — STOP. Do not call
-  any further tools. Produce your summary and recommendation from just
-  these two results.
+  revenue, and revenue volatility is low or moderate, call
+  get_business_filings next as a mandatory minimum compliance check --
+  good credit and revenue NEVER excuse skipping this, since compliance
+  issues (e.g. delinquent taxes) are invisible in credit/bank data and
+  can disqualify an otherwise-clean applicant. If filings also come back
+  clean (active registration, current taxes), you may STOP there and
+  produce your recommendation from these three results. Do not call any
+  further tools in this clean case.
 - If the stop-early conditions above are NOT all met, this is a MANDATORY
   signal to keep investigating -- it is not optional or a judgment call.
   A clearly bad credit report alone (e.g. low score, multiple late

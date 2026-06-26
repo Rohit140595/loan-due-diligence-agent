@@ -42,6 +42,21 @@ def run_risk_score(applicant_id: str) -> dict:
 
     sector_default_rate = benchmarks["sector_default_rate"]
 
+    # A missing credit score (e.g. a brand-new business with no credit
+    # history yet) isn't a value to score against -- it's a "we don't
+    # know" case. Returning a fabricated number here would be exactly the
+    # kind of hallucination-by-tool we've been avoiding elsewhere; report
+    # the gap explicitly instead so the agent (and analyst) treat it as
+    # missing information, not as evidence of low or high risk.
+    if credit_score is None:
+        return {
+            "risk_score": None,
+            "base_score": None,
+            "sector_multiplier_applied": None,
+            "insufficient_data": True,
+            "reason": "No credit history available -- cannot compute a composite risk score.",
+        }
+
     # Credit score contributes up to 40 points, scaled linearly.
     base_score = 0
     base_score += (credit_score / 850) * 40

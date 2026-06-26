@@ -10,5 +10,21 @@
     "auto_repair": {
         "sector_default_rate": 0.13,
         "sector_avg_revenue": 11000
+    },
+    "landscaping": {
+        "sector_default_rate": 0.07,
+        "sector_avg_revenue": 9000
+    },
+    "childcare": {
+        "sector_default_rate": 0.05,
+        "sector_avg_revenue": 16000
+    },
+    "fitness": {
+        "sector_default_rate": 0.09,
+        "sector_avg_revenue": 20000
+    },
+    "professional_services": {
+        "sector_default_rate": 0.04,
+        "sector_avg_revenue": 12000
     }
 }
