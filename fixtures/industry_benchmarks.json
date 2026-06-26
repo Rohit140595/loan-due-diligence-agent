@@ -6,5 +6,9 @@
     "retail": {
         "sector_default_rate": 0.06,
         "sector_avg_revenue": 18000
+    },
+    "auto_repair": {
+        "sector_default_rate": 0.13,
+        "sector_avg_revenue": 11000
     }
 }
