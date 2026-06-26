@@ -9,12 +9,6 @@
 from agent import run_investigation
 from llm_judge import judge_grounding
 
-# Note: an earlier regex-based grounding check (eval_utils.py) is kept in
-# the repo for reference -- it had real false positives on derived math
-# ("42000/9000 = 4.7x") and prompt-stated facts, since regex can't
-# understand arithmetic or context. Replaced with LLM-as-judge below,
-# which can.
-
 
 def test_clean_applicant_stops_with_minimal_investigation():
     # APPLICANT-001 is a clean profile (good credit, active filings, low

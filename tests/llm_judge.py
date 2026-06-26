@@ -1,10 +1,11 @@
 # LLM-as-judge grounding check (Module 6, Category 2).
 #
-# Superseded the regex-based approach in eval_utils.py -- that approach
-# had real false positives on derived math (e.g. Claude correctly
-# computing "42000/9000 = 4.7x") and prompt-stated facts (e.g. a
-# threshold from strategy.md), because it can't understand context or
-# arithmetic, only pattern-match digits.
+# A first attempt used regex to extract numbers from the summary and
+# match them against tool output values, but that had real false
+# positives on derived math (e.g. Claude correctly computing
+# "42000/9000 = 4.7x") and prompt-stated facts (e.g. a threshold from
+# strategy.md), since regex can't understand context or arithmetic, only
+# pattern-match digits.
 #
 # This uses a second, independent Claude call to judge whether the
 # agent's summary is factually supported by the tool evidence -- it
