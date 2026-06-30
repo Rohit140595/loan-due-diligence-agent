@@ -47,4 +47,9 @@ jobs:
       - name: Run agent eval suite
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: pytest tests/test_agent.py -v
+        # `python -m pytest`, not bare `pytest` -- the -m form prepends
+        # the current directory to sys.path, which is how
+        # tests/test_agent.py's `from agent import ...` resolves the
+        # root-level agent.py. Bare `pytest` doesn't do this, and fails
+        # with ModuleNotFoundError: No module named 'agent'.
+        run: python -m pytest tests/test_agent.py -v
