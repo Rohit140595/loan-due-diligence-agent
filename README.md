@@ -40,6 +40,13 @@ tools/            — one file per tool:
                         calls the other tool functions directly (no I/O
                         of its own)
 agent.py          — the agent loop (raw Anthropic SDK, no framework)
+agent_langgraph.py — same agent, ported to LangGraph (see "Raw SDK vs
+                      LangGraph" below) -- run with `python
+                      agent_langgraph.py`, traced automatically to
+                      LangSmith if LANGCHAIN_TRACING_V2=true
+eval_langsmith.py — small LangSmith dataset + evaluate() demo (2 of the
+                      7 labeled applicants) -- separate from, not a
+                      replacement for, tests/test_agent.py
 ui.py             — Streamlit UI: pick an applicant, run the agent,
                       review the report + full tool-call audit trail
 tests/            — eval suite (behavioral correctness, hallucination/
@@ -47,6 +54,35 @@ tests/            — eval suite (behavioral correctness, hallucination/
                       against human-labeled fixtures)
 requirements.txt
 ```
+
+## Raw SDK vs. LangGraph
+
+`agent.py` is built directly on the Anthropic SDK -- no framework --
+specifically so the actual mechanics of tool use (Claude requests a
+tool call, your code executes it, the result goes back as a new
+message, repeat until done) stay visible rather than hidden behind
+abstractions.
+
+`agent_langgraph.py` is the same agent ported to LangGraph once those
+mechanics were already understood and tested. It's mechanically
+identical -- same tools, same `strategy.md` system prompt, same
+stop/continue logic -- only the orchestration code changed: the
+hand-written `while True` loop becomes a 2-node graph (`agent` calls
+Claude, `tools` executes whatever it requested) with a conditional edge
+back to `agent`, using LangGraph's prebuilt `ToolNode` and
+`tools_condition` instead of the manual dispatch logic in `agent.py`.
+Both versions expose the same `run_investigation(applicant_id)`
+contract (`{"summary": ..., "tool_calls": [...]}`), so downstream code
+like `extract_recommendation()` works unchanged against either one.
+
+The payoff of building raw first: LangChain's `@tool` decorator derives
+each tool's schema from its docstring and type hints automatically
+(rather than the hand-written JSON `TOOLS` list in `agent.py`), and
+LangSmith traces every step automatically just by setting
+`LANGCHAIN_TRACING_V2=true` -- because LangChain/LangGraph components
+already expose a common interface the tracer hooks into. Neither of
+those is "free" in the raw version; they're the direct payoff of
+adopting the framework's structure, not something for nothing.
 
 ## Data storage: why SQLite + FastAPI for 5 tools, a vector DB for 1
 
@@ -85,6 +121,19 @@ python agent.py
 
 # ...or launch the UI instead (same prerequisites: API server + both DBs)
 streamlit run ui.py
+
+# ...or run the LangGraph port instead of the raw version
+python agent_langgraph.py
+
+# Optional: also requires LANGCHAIN_API_KEY in .env to enable tracing
+# and the eval dataset below
+echo "LANGCHAIN_API_KEY=your_key_here" >> .env
+echo "LANGCHAIN_TRACING_V2=true" >> .env
+echo "LANGCHAIN_PROJECT=loan-due-diligence-agent" >> .env
+
+# Run a small LangSmith dataset eval (2 applicants) against the
+# LangGraph version -- prints a link to the results dashboard
+python eval_langsmith.py
 ```
 
 The CLI run investigates the sample applicant in
@@ -105,4 +154,9 @@ its investigation depth based on findings and defers the final
 approve/decline decision to a human analyst. Full eval suite covers
 behavioral correctness, hallucination/grounding, and decision quality
 against human-labeled fixtures. A Streamlit UI (`ui.py`) provides a
-human-facing view of the same investigation flow.
+human-facing view of the same investigation flow. A LangGraph port
+(`agent_langgraph.py`) demonstrates the same agent on a standard
+orchestration framework with automatic LangSmith tracing and a small
+dataset-based eval (`eval_langsmith.py`), built deliberately after the
+raw version so the framework's value-add (and what it costs in
+implicit behavior) could be evaluated directly.
