@@ -6,3 +6,7 @@ requests
 pytest
 chromadb
 streamlit
+langchain
+langchain-anthropic
+langgraph
+langsmith
