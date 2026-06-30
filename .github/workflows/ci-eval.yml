@@ -1,20 +1,23 @@
-# Full agent eval suite (tests/test_agent.py): behavioral correctness,
-# LLM-as-judge hallucination/grounding checks, and decision-quality
-# tests against human-labeled fixtures. Every test here makes real,
-# billed Anthropic API calls (see README/Module 5 cost analysis).
+# Smoke-test subset of the agent eval suite (tests/test_agent.py).
+# Every test here makes real, billed Anthropic API calls (see
+# README/Module 5 cost analysis), so this deliberately runs only the 2
+# cheapest behavioral-correctness tests (tool-call-count checks, no
+# LLM-as-judge grounding calls and no 7-applicant decision-quality
+# parametrize) -- a fast, cheap signal that the agent's basic stop/
+# continue behavior isn't broken, not a full regression suite. Run the
+# full suite locally (`python -m pytest tests/test_agent.py -v`) before
+# merging anything that could affect behavior more subtly.
 #
-# Deliberately scoped to push events on main only, NOT every push/PR --
-# running this on every WIP commit would mean uncontrolled API spend on
-# every push. Gating it to main means it only runs when code has
-# already been reviewed and merged, the same point ci-fast.yml's cheap
-# checks have already passed. This mirrors the eval-suite cost
-# discipline used throughout the project (Module 5/6): test thoroughly,
-# but not reflexively.
+# Also deliberately scoped to push events on main only, NOT every
+# push/PR -- running this on every WIP commit would mean uncontrolled
+# API spend on every push. Gating it to main means it only runs when
+# code has already been reviewed and merged, the same point
+# ci-fast.yml's cheap checks have already passed.
 #
 # Requires repo secret ANTHROPIC_API_KEY to be set
 # (Settings -> Secrets and variables -> Actions).
 
-name: CI (agent eval suite)
+name: CI (agent eval smoke test)
 
 on:
   push:
@@ -44,7 +47,7 @@ jobs:
           sleep 3
           curl -sf http://localhost:8000/applicants/APPLICANT-001/profile
 
-      - name: Run agent eval suite
+      - name: Run behavioral smoke tests (2 cheapest tests only)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         # `python -m pytest`, not bare `pytest` -- the -m form prepends
@@ -52,4 +55,7 @@ jobs:
         # tests/test_agent.py's `from agent import ...` resolves the
         # root-level agent.py. Bare `pytest` doesn't do this, and fails
         # with ModuleNotFoundError: No module named 'agent'.
-        run: python -m pytest tests/test_agent.py -v
+        run: |
+          python -m pytest tests/test_agent.py \
+            -k "test_clean_applicant_stops_with_minimal_investigation or test_risky_applicant_investigates_thoroughly" \
+            -v
