@@ -1,0 +1,50 @@
+# Full agent eval suite (tests/test_agent.py): behavioral correctness,
+# LLM-as-judge hallucination/grounding checks, and decision-quality
+# tests against human-labeled fixtures. Every test here makes real,
+# billed Anthropic API calls (see README/Module 5 cost analysis).
+#
+# Deliberately scoped to push events on main only, NOT every push/PR --
+# running this on every WIP commit would mean uncontrolled API spend on
+# every push. Gating it to main means it only runs when code has
+# already been reviewed and merged, the same point ci-fast.yml's cheap
+# checks have already passed. This mirrors the eval-suite cost
+# discipline used throughout the project (Module 5/6): test thoroughly,
+# but not reflexively.
+#
+# Requires repo secret ANTHROPIC_API_KEY to be set
+# (Settings -> Secrets and variables -> Actions).
+
+name: CI (agent eval suite)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  eval-suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build local databases from fixtures
+        run: |
+          python scripts/migrate_to_sqlite.py
+          python scripts/migrate_news_to_chroma.py
+
+      - name: Start data API in background
+        run: |
+          uvicorn api:app --host 0.0.0.0 --port 8000 &
+          sleep 3
+          curl -sf http://localhost:8000/applicants/APPLICANT-001/profile
+
+      - name: Run agent eval suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pytest tests/test_agent.py -v
