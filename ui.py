@@ -8,8 +8,15 @@ tool call the agent made along the way -- the same evidence chain used
 in tests/test_agent.py's grounding checks, surfaced for a human reader
 instead of an eval.
 
-This calls agent.run_investigation() directly (in-process), so it needs
-the same things agent.py needs to run standalone: the data API running
+Offers a choice between two interchangeable implementations of the same
+agent -- agent.py (raw Anthropic SDK) and agent_langgraph.py (LangGraph
+port) -- since both expose the identical run_investigation(applicant_id)
+contract (see README "Raw SDK vs. LangGraph"). Picking LangGraph also
+traces the run to LangSmith automatically if LANGCHAIN_TRACING_V2=true
+is set in .env.
+
+This calls run_investigation() directly (in-process), so it needs the
+same things agent.py needs to run standalone: the data API running
 (`uvicorn api:app --reload`), both local databases built (see README),
 and ANTHROPIC_API_KEY set in .env.
 
@@ -21,9 +28,19 @@ from pathlib import Path
 
 import streamlit as st
 
-from agent import run_investigation, extract_recommendation
+from agent import extract_recommendation
+from agent import run_investigation as run_investigation_raw
+from agent_langgraph import run_investigation as run_investigation_langgraph
 
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "applicants.json"
+
+# Both implementations share the exact same {"summary": ..., "tool_calls":
+# [...]} contract, so the UI only needs to pick which function to call --
+# nothing downstream of this dict needs to know or care which one ran.
+_IMPLEMENTATIONS = {
+    "Raw SDK (agent.py)": run_investigation_raw,
+    "LangGraph (agent_langgraph.py)": run_investigation_langgraph,
+}
 
 # Badge color per recommendation -- gives the analyst an at-a-glance
 # read before they dig into the written report.
@@ -71,6 +88,16 @@ def main():
         options=list(choices.keys()),
         format_func=lambda aid: f"{aid} -- {choices[aid]}",
     )
+
+    implementation_name = st.radio(
+        "Agent implementation",
+        options=list(_IMPLEMENTATIONS.keys()),
+        horizontal=True,
+        help="Both call the identical strategy.md and the same tools -- "
+        "only the orchestration code differs. LangGraph runs also trace "
+        "to LangSmith if LANGCHAIN_TRACING_V2 is set in .env.",
+    )
+    run_investigation = _IMPLEMENTATIONS[implementation_name]
 
     if st.button("Run investigation", type="primary"):
         with st.spinner("Investigating... this calls the Anthropic API and may take a minute."):
