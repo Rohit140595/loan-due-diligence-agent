@@ -1,0 +1,43 @@
+# Fast, free CI: runs on every push and pull request. Only does
+# syntax/import checks -- no Anthropic API calls, no cost, so it's safe
+# to trigger on every single commit without thinking about it.
+#
+# The actual agent eval suite (tests/test_agent.py) makes real, paid
+# LLM calls and is deliberately NOT run here -- see ci-eval.yml, which
+# only runs on pushes to main, to keep API spend bounded and
+# predictable rather than incurred on every WIP commit.
+
+name: CI (fast checks)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  syntax-and-imports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax check all Python files
+        run: python -m py_compile $(find . -name "*.py" -not -path "./.venv/*")
+
+      - name: Import check (catches broken imports without needing a real API key or running servers)
+        env:
+          # agent.py/agent_langgraph.py construct an Anthropic client at
+          # import time, which just stores the key string -- no network
+          # call happens until an actual request is made, so a dummy
+          # value is sufficient to prove imports don't crash.
+          ANTHROPIC_API_KEY: "dummy-key-for-import-check-only"
+        run: |
+          python -c "import api"
+          python -c "import agent"
+          python -c "import agent_langgraph"
+          python -c "from tools import api_client"

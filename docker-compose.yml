@@ -1,0 +1,40 @@
+services:
+  # One-shot: builds db/loan_data.db + db/chroma/ from fixtures/ before
+  # api/ui start. Both migration scripts are re-runnable, so this is
+  # safe to run on every `docker compose up`.
+  migrate:
+    build: .
+    command: sh -c "python scripts/migrate_to_sqlite.py && python scripts/migrate_news_to_chroma.py"
+    volumes:
+      - ./db:/app/db
+      - ./fixtures:/app/fixtures
+
+  # Thin data API in front of db/loan_data.db (see api.py / README "Data
+  # storage"). The 5 SQLite-backed tools call this over HTTP.
+  api:
+    build: .
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./db:/app/db
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Streamlit UI. Reaches the API via the "api" service name (Docker's
+  # internal DNS), not localhost -- LOAN_API_BASE_URL overrides
+  # tools/api_client.py's localhost default for this container only.
+  ui:
+    build: .
+    command: streamlit run ui.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./db:/app/db
+    environment:
+      - LOAN_API_BASE_URL=http://api:8000
+    env_file:
+      - .env
+    depends_on:
+      - api

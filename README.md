@@ -52,6 +52,12 @@ ui.py             — Streamlit UI: pick an applicant, run the agent,
 tests/            — eval suite (behavioral correctness, hallucination/
                       grounding via LLM-as-judge, decision quality
                       against human-labeled fixtures)
+Dockerfile,
+docker-compose.yml — containerized run: migrate -> api -> ui (see
+                      "Running it with Docker" below)
+.github/workflows/ — CI: fast syntax/import checks on every push, paid
+                      agent eval suite only on pushes to main (see
+                      "CI/CD" below)
 requirements.txt
 ```
 
@@ -135,6 +141,33 @@ echo "LANGCHAIN_PROJECT=loan-due-diligence-agent" >> .env
 # LangGraph version -- prints a link to the results dashboard
 python eval_langsmith.py
 ```
+
+## Running it with Docker
+
+```bash
+echo "ANTHROPIC_API_KEY=your_key_here" > .env
+docker compose up --build
+```
+
+This runs three services: `migrate` (builds both local databases from
+`fixtures/`, then exits), `api` (the data API, port 8000), and `ui`
+(Streamlit, port 8501) -- visit http://localhost:8501. `db/` is bind-mounted
+into the containers, so the generated databases land in the same place
+as a non-Docker run.
+
+## CI/CD
+
+Two separate GitHub Actions workflows, deliberately split by cost:
+
+- **`ci-fast.yml`** runs on every push and pull request: syntax checks
+  and import checks only. No Anthropic API calls, so it's free to run
+  on every commit without thinking about it.
+- **`ci-eval.yml`** runs the real agent eval suite (`pytest
+  tests/test_agent.py`) -- but only on pushes to `main`, not every
+  commit, since every test run makes real, billed Claude API calls (see
+  Module 5 cost analysis). Gating it to `main` means it only runs after
+  code has already been reviewed and merged, not on every WIP push.
+  Requires an `ANTHROPIC_API_KEY` repo secret.
 
 The CLI run investigates the sample applicant in
 `fixtures/applicants.json` and prints the structured report. The UI lets
