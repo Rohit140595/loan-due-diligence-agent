@@ -157,7 +157,144 @@ requirements and liability in lending — not a technical limitation." If
 asked "could the agent just decide," the answer isn't "not yet" — it's
 "deliberately not its job."
 
-## 10. Quick reference
+## 10. Technical deep-dive — for drill-down questions
+
+Everything below is read directly from the implementation files, in
+enough detail to survive follow-up questions.
+
+### A. The tool-use loop, mechanically (`agent.py`)
+
+Model: `claude-sonnet-4-6`, `temperature=0` (deterministic investigations
+— important for both reproducible evals and consistent analyst
+experience), `max_tokens=2048`. The loop:
+
+1. `messages` starts as one user turn: `"Investigate loan applicant: {id}"`.
+2. Call Claude with `system=STRATEGY, tools=TOOLS, messages=messages`.
+3. Check `response.stop_reason`:
+   - `"end_turn"` → concatenate all `text`-type content blocks into the
+     final summary, return.
+   - `"tool_use"` → Claude's response can contain **multiple** `tool_use`
+     blocks in one turn (it's allowed to request several tools at once).
+     Execute each via `TOOL_FUNCTIONS[block.name](**block.input)`, wrap
+     each result as a `tool_result` message keyed by `tool_use_id`
+     (this ID pairing is how Claude matches a result back to the request
+     that produced it), and send all of them back as **one** new `user`
+     message (not one message per tool — they're batched).
+   - Anything else (e.g. hitting `max_tokens`) raises — not a state the
+     happy path should ever reach.
+4. The API is stateless — the full `messages` list is resent, growing,
+   on every call. There's no server-side conversation state.
+
+**The trust-boundary point worth stating explicitly**: Claude only ever
+*requests* a tool call (a structured `{"name", "input"}` it wants run);
+`agent.py`'s own Python code is what actually executes `TOOL_FUNCTIONS[name]`.
+Claude cannot do anything beyond exactly what that dict exposes — there's
+no code execution, no arbitrary function access, just a fixed dispatch
+table.
+
+### B. The LangGraph port, mechanically (`agent_langgraph.py`)
+
+- `StateGraph(MessagesState)` — two nodes: `"agent"` (calls
+  `llm.invoke([SystemMessage(STRATEGY)] + state["messages"])`, same
+  fresh-system-prompt-every-call behavior as `agent.py`, so swapping the
+  underlying model provider wouldn't require restructuring this) and
+  `"tools"` (`ToolNode(TOOLS)`, LangGraph's prebuilt tool-executor).
+- `tools_condition` is the conditional-edge function that inspects the
+  latest message for tool calls and routes to `"tools"` if there are any,
+  `END` otherwise — this is the direct structural replacement for
+  `agent.py`'s `response.stop_reason == "tool_use"` check.
+- Each tool is exposed via LangChain's `@tool` decorator wrapping the
+  *same* underlying function from `tools/*.py` — no logic duplicated,
+  just re-exposed in LangChain's schema format (derived automatically
+  from the docstring + type hints, vs. the hand-written JSON `input_schema`
+  in `agent.py`).
+- **A real gotcha worth naming if drilled**: `ToolNode` stringifies
+  non-string tool outputs (the tools here return dicts/lists) via
+  Python's `str()`, not `json.dumps()`. Reconstructing
+  `run_investigation`'s `tool_calls` log — needed so the *same* eval
+  suite works against both agent versions unchanged — requires
+  `ast.literal_eval`, not `json.loads`, to recover the original Python
+  object from that stringified form. A subtle, easy-to-miss detail if
+  you were porting this yourself.
+
+### C. Data layer specifics
+
+**SQLite** (`db/schema.sql`): 4 tables (`applicants`,
+`credit_reports`, `bank_statements`, `business_filings`) keyed by
+`applicant_id`, plus `industry_benchmarks` keyed by `industry`. FastAPI
+(`api.py`) wraps each with a single-row `SELECT`, opening/closing its own
+connection per call (explicitly documented as fine for this app's
+low-traffic read-only case, not a production connection-pooling
+pattern). Missing data returns **HTTP 404**, which the calling tool
+converts into explicit `None` fields rather than an error — the
+distinction matters: a brand-new business with no credit history yet
+should read to the agent as "checked, there's nothing here" (a real,
+informative signal), not as a crash or an omitted field.
+
+**Chroma** (`tools/news_search.py` + `scripts/migrate_news_to_chroma.py`):
+each article's embedded document is `"{headline}. {snippet}"` — full
+snippet, not just the headline, for more context to match against.
+`collection.query()` uses a **fixed, generic risk-oriented query string**
+(`"{company_name} negative news lawsuit complaint violation risk concerns"`)
+scoped to the applicant via `where={"applicant_id": ...}` metadata
+filtering — worth naming candidly as a real limitation if drilled: the
+query doesn't adapt based on what the agent has already found elsewhere
+in the investigation, it's the same fixed string for every applicant.
+No embedding model was explicitly configured — this uses Chroma's
+default embedding function, not a custom one; worth checking
+`chromadb.utils.embedding_functions` if asked to name it precisely,
+since that's a real gap in what's documented in-repo.
+
+### D. The composite risk score formula, exact (`tools/risk_score.py`)
+
+Re-fetches credit/bank/filings/industry data **itself** rather than
+trusting values Claude might pass in — explicitly to avoid an LLM
+"retyping" a number from earlier context and introducing a transcription
+error. If `credit_score` is `None` (no credit history at all), returns
+`{"insufficient_data": True, ...}` rather than fabricating a number —
+the same "explicit gap, not a guess" principle as the API layer.
+Otherwise:
+
+```
+base_score  = (credit_score / 850) * 40                         # up to 40 pts
+            + (+15 if registration active AND taxes current else -15)
+            + (+15 if low revenue volatility, -15 if high, 0 if moderate)
+            + (+15 if debt/annual_revenue <= 0.20 else -15)       # -15 if revenue is $0, avoids div-by-zero
+            - late_payments * 2
+base_score  = clamp(base_score, 0, 100)
+
+sector_multiplier_applied = sector_default_rate >= 0.08 AND credit_score < 750
+final_score = base_score * 0.7 if sector_multiplier_applied else base_score
+```
+
+The sector multiplier is a genuine design choice worth explaining if
+asked: high-default-sector *and* weak personal credit **compounds** as a
+30% haircut on top of the base score, rather than the two risk factors
+just averaging together additively — the reasoning being that the two
+signals reinforcing each other is worse than either alone.
+
+### E. Hallucination detection, both versions (`tests/llm_judge.py`)
+
+Regex-based first attempt: extract numbers from the summary, match
+against tool output values. Real false positives on **derived math**
+(Claude correctly computing `42000/9000 = 4.7x` — a number that
+legitimately doesn't appear verbatim in the evidence) and on
+**prompt-stated facts** (a threshold quoted from `strategy.md` itself,
+not from tool evidence) — regex pattern-matches digits, it can't
+understand arithmetic or source context.
+
+Current version: a **second, independent Claude call** (`temperature=0`,
+same model) given the raw tool evidence and the summary, instructed to
+flag only claims that state a fact unsupported by the evidence or that
+misstate it (explicitly told derived math and qualitative judgment calls
+like "weak credit" are fine, not flaggable). Forced to respond in a
+strict `{"grounded": bool, "unsupported_claims": [...]}` JSON shape —
+with defensive code-fence stripping before `json.loads()`, since Claude
+sometimes wraps JSON output in ` ```json ` fences despite being told not
+to. Costs one extra billed API call per eval run — a real, acknowledged
+tradeoff for actually understanding context instead of pattern-matching.
+
+## 11. Quick reference
 
 | | |
 |---|---|
@@ -169,11 +306,15 @@ asked "could the agent just decide," the answer isn't "not yet" — it's
 | Serving | Streamlit UI (`ui.py`), Docker Compose (3 services), 2-tier CI |
 | Human role | Final approve/decline decision — regulatory design choice |
 
-## 11. Anticipated questions, one-line pointers
+## 12. Anticipated questions, one-line pointers
 
 - *"Walk me through the architecture"* → §4.
 - *"Why build it raw before using a framework?"* → §5.
-- *"How do you know it's not hallucinating?"* → §6, name the regex→LLM-judge upgrade.
+- *"How do you know it's not hallucinating?"* → §6 for the summary, §10E for the full mechanics.
 - *"Tell me about a limitation you accepted"* → §6's `APPLICANT-006` example — the strongest single story in this project.
 - *"Why doesn't the agent make the final decision?"* → §9.
 - *"What would you improve with more time?"* → §7 (get the real cost analysis reconstructed and verified) is the honest answer.
+- *"Walk me through exactly how the tool-use loop works"* → §10A — know the `stop_reason` check and the multi-tool-per-turn batching cold.
+- *"How would you port this to another framework/provider?"* → §10B, especially the `ast.literal_eval` vs `json.loads` gotcha — a good "I actually hit this" detail.
+- *"How exactly is risk computed?"* → §10D, you should be able to state the formula from memory.
+- *"What embedding model does the news search use?"* → §10C — the honest answer is "Chroma's default, never explicitly configured," which is itself worth naming as an unpinned dependency if asked about reproducibility.
